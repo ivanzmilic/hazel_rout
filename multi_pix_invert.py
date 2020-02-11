@@ -24,6 +24,7 @@ loc_continuum = np.amax(stokes[:,:,0,l_left:l_right],axis=2)
 
 stokes /= loc_continuum[:,:,np.newaxis,np.newaxis]
 
+
 # Save the data for the inversion
 # First the wavelength axis
 np.savetxt('10830_gregor.wavelength', ll[l_left:l_right], header='lambda')
@@ -52,7 +53,7 @@ los_3d[:,2] = 90.0
 boundary_3d = np.zeros((n_pixel,n_wvl,4), dtype=np.float64)
 boundary_3d[:,:,0] = 1.0
 
-f = h5py.File('subset_hi_velocity.h5', 'w')
+f = h5py.File('subset_to_invert.h5', 'w')
 db_stokes = f.create_dataset('stokes', stokes_3d.shape, dtype=np.float64)
 db_sigma = f.create_dataset('sigma', sigma_3d.shape, dtype=np.float64)
 db_los = f.create_dataset('LOS', los_3d.shape, dtype=np.float64)
@@ -62,11 +63,3 @@ db_sigma[:] = sigma_3d
 db_los[:] = los_3d
 db_boundary[:] = boundary_3d
 f.close()
-
-# ######################
-# Inversion:
-
-#iterator = hazel.Iterator(use_mpi=True)
-#mod = hazel.Model('conf_multi.ini', rank=iterator.get_rank())
-#iterator.use_model(model=mod)
-#iterator.run_all_pixels()

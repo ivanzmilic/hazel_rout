@@ -17,10 +17,8 @@ dataset = fits.open(filename)
 stokes = dataset[0].data
 ll = dataset[1].data
 
-qs = 81700.0
-stokes /= qs
-qs_local = 0.94
 n_wvl = l_right - l_left
+qs = np.amax(stokes[x_coordinate,y_coordinate,0,l_left:l_right])
 
 # Save the data for the inversion
 # First the wavelength axis
@@ -40,10 +38,10 @@ f.write(b'# LOS theta_LOS, phi_LOS, gamma_LOS\n')
 f.write(b'0.0 0.0 90.0\n')
 f.write(b'\n')
 f.write(b'# Boundary condition I/Ic(mu=1), Q/Ic(mu=1), U/Ic(mu=1), V/Ic(mu=1)\n')
-f.write(b'0.75 0.0 0.0 0.0\n')
+f.write(b'1.0 0.0 0.0 0.0\n')
 f.write(b'\n')
 f.write(b'# SI SQ SU SV sigmaI sigmaQ sigmaU sigmaV\n')
-tmp = np.vstack([stokes[x_coordinate,y_coordinate,:,l_left:l_right], noise*np.ones((4,n_wvl))])
+tmp = np.vstack([stokes[x_coordinate,y_coordinate,:,l_left:l_right]/qs, noise*np.ones((4,n_wvl))])
 np.savetxt(f, tmp.T)
 f.close()
 
@@ -70,7 +68,7 @@ print('(npix,nrand,ncycle,nstokes,nlambda) -> {0}'.format(f['spec1']['stokes'].s
 fig, ax = pl.subplots(nrows=2, ncols=2, figsize=(10,10))
 ax = ax.flatten()
 for i in range(4):
-    ax[i].plot(f['spec1']['wavelength'][:] - 10830, stokes[x_coordinate,y_coordinate,i,l_left:l_right])
+    ax[i].plot(f['spec1']['wavelength'][:] - 10830, stokes[x_coordinate,y_coordinate,i,l_left:l_right]/qs)
     for j in range(ncycle):
         ax[i].plot(f['spec1']['wavelength'][:] - 10830, f['spec1']['stokes'][0,0,j,i,:])
 
