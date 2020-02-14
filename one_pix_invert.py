@@ -16,6 +16,8 @@ from astropy.io import fits
 dataset = fits.open(filename)
 stokes = dataset[0].data
 ll = dataset[1].data
+qs = np.mean(np.amax(stokes[:,:,0,l_left:l_right],axis=(2)),axis=(0,1))
+print (qs)
 
 n_wvl = l_right - l_left
 qs = np.amax(stokes[x_coordinate,y_coordinate,0,l_left:l_right])
@@ -31,7 +33,7 @@ for i in range(n_wvl):
     f.write('1.0    1.0   1.0   1.0\n')
 f.close()
 
-noise = 2E-3
+noise = 1E-2
 # And the Stokes parameters
 f = open('10830_gregor_stokes.1d', 'wb')
 f.write(b'# LOS theta_LOS, phi_LOS, gamma_LOS\n')
@@ -48,7 +50,7 @@ f.close()
 
 # ######################
 # # And now we do the inversion using the appropriate configuration file
-mod = hazel.Model('conf.ini', working_mode='inversion', verbose=3, randomization=2)
+mod = hazel.Model('conf_ph_ch.ini', working_mode='inversion', verbose=3, randomization=1)
 mod.read_observation()
 mod.open_output()
 mod.invert()
@@ -69,7 +71,7 @@ fig, ax = pl.subplots(nrows=2, ncols=2, figsize=(10,10))
 ax = ax.flatten()
 for i in range(4):
     ax[i].plot(f['spec1']['wavelength'][:] - 10830, stokes[x_coordinate,y_coordinate,i,l_left:l_right]/qs)
-    for j in range(ncycle):
+    for j in range(ncycle-1,ncycle):
         ax[i].plot(f['spec1']['wavelength'][:] - 10830, f['spec1']['stokes'][0,0,j,i,:])
 
 for i in range(4):
