@@ -9,6 +9,7 @@ x_coordinate = int(sys.argv[2])
 y_coordinate = int(sys.argv[3])
 l_left = int(sys.argv[4])
 l_right = int(sys.argv[5])
+local = int(sys.argv[6])
 
 #Here we read the data from the cube:
 from astropy.io import fits
@@ -16,11 +17,15 @@ from astropy.io import fits
 dataset = fits.open(filename)
 stokes = dataset[0].data
 ll = dataset[1].data
-qs = np.mean(np.amax(stokes[:,:,0,l_left:l_right],axis=(2)),axis=(0,1))
-print (qs)
-
 n_wvl = l_right - l_left
-qs = np.amax(stokes[x_coordinate,y_coordinate,0,l_left:l_right])
+
+if (local):
+	norm = np.amax(stokes[x_coordinate,y_coordinate,0,l_left:l_right])
+else:
+	norm = np.mean(np.amax(stokes[:,:,0,l_left:l_right],axis=(2)),axis=(0,1))
+
+print (norm)
+
 
 # Save the data for the inversion
 # First the wavelength axis
@@ -43,14 +48,14 @@ f.write(b'# Boundary condition I/Ic(mu=1), Q/Ic(mu=1), U/Ic(mu=1), V/Ic(mu=1)\n'
 f.write(b'1.0 0.0 0.0 0.0\n')
 f.write(b'\n')
 f.write(b'# SI SQ SU SV sigmaI sigmaQ sigmaU sigmaV\n')
-tmp = np.vstack([stokes[x_coordinate,y_coordinate,:,l_left:l_right]/qs, noise*np.ones((4,n_wvl))])
+tmp = np.vstack([stokes[x_coordinate,y_coordinate,:,l_left:l_right]/norm, noise*np.ones((4,n_wvl))])
 np.savetxt(f, tmp.T)
 f.close()
 
 
 # ######################
 # # And now we do the inversion using the appropriate configuration file
-mod = hazel.Model('conf_ph_ch.ini', working_mode='inversion', verbose=3, randomization=1)
+mod = hazel.Model('conf.ini', working_mode='inversion', verbose=3, randomization=1)
 mod.read_observation()
 mod.open_output()
 mod.invert()
@@ -70,7 +75,7 @@ print('(npix,nrand,ncycle,nstokes,nlambda) -> {0}'.format(f['spec1']['stokes'].s
 fig, ax = pl.subplots(nrows=2, ncols=2, figsize=(10,10))
 ax = ax.flatten()
 for i in range(4):
-    ax[i].plot(f['spec1']['wavelength'][:] - 10830, stokes[x_coordinate,y_coordinate,i,l_left:l_right]/qs)
+    ax[i].plot(f['spec1']['wavelength'][:] - 10830, stokes[x_coordinate,y_coordinate,i,l_left:l_right]/norm)
     for j in range(ncycle-1,ncycle):
         ax[i].plot(f['spec1']['wavelength'][:] - 10830, f['spec1']['stokes'][0,0,j,i,:])
 

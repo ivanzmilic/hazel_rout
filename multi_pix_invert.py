@@ -11,6 +11,8 @@ x_range = int(sys.argv[4])
 y_range = int(sys.argv[5])
 l_left = int(sys.argv[6])
 l_right = int(sys.argv[7])
+local = int(sys.argv[8])
+output = sys.argv[9]
 
 #Here we read the data from the cube:
 from astropy.io import fits
@@ -20,9 +22,14 @@ stokes = dataset[0].data
 ll = dataset[1].data
 
 n_wvl = l_right - l_left
-loc_continuum = np.amax(stokes[:,:,0,l_left:l_right],axis=2)
 
-stokes /= loc_continuum[:,:,np.newaxis,np.newaxis]
+if (local):
+	loc_continuum = np.amax(stokes[:,:,0,l_left:l_right],axis=2)
+	stokes /= loc_continuum[:,:,np.newaxis,np.newaxis]
+
+else:
+	qs = np.mean(np.amax(stokes[:,:,0,l_left:l_right],axis=2))
+	stokes[:,:,:,:] /= qs
 
 
 # Save the data for the inversion
@@ -53,7 +60,7 @@ los_3d[:,2] = 90.0
 boundary_3d = np.zeros((n_pixel,n_wvl,4), dtype=np.float64)
 boundary_3d[:,:,0] = 1.0
 
-f = h5py.File('subset_to_invert.h5', 'w')
+f = h5py.File(output, 'w')
 db_stokes = f.create_dataset('stokes', stokes_3d.shape, dtype=np.float64)
 db_sigma = f.create_dataset('sigma', sigma_3d.shape, dtype=np.float64)
 db_los = f.create_dataset('LOS', los_3d.shape, dtype=np.float64)
