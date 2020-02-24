@@ -35,7 +35,7 @@ for p in range(0,len(param_name)):
 	plt.cla()
 	plt.figure(figsize=[6.5,4.0])
 	plt.imshow(parameters[p,:,:,0,1,0].T,origin='Lower',cmap=mapp[p],vmin=limits[p][0],vmax=limits[p][1])
-	plt.colorbar()
+	plt.colorbar(shrink=0.6)
 	plt.xlabel('x [pixel]')
 	plt.ylabel('y [pixel]')
 	plt.title(param_name[p])
