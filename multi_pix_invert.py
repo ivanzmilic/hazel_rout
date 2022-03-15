@@ -47,7 +47,6 @@ noise = 2E-3
 # And the Stokes parameters
 n_pixel = x_range*y_range
 
-# Generate mock Stokes parameters full of zeros in this case (so completely useless)
 stokes_3d = stokes[x_coordinate:x_coordinate+x_range,y_coordinate:y_coordinate+y_range,:,l_left:l_right]
 stokes_3d = stokes_3d.reshape(x_range*y_range,4,n_wvl)
 stokes_3d = stokes_3d.transpose(0,2,1)
