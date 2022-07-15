@@ -6,12 +6,12 @@ import sys
 # Only important imput is the file name of the data in the fits format. 
 # Here we will presume it looks the same as the GREGOR data
 
-filename = sys.argv[1]
+input_filename = sys.argv[1] # this is without the .fits extension, can it be done better?
 
 
 
 #Here we read the data from the cube:
-dataset = fits.open(filename)
+dataset = fits.open(input_filename+'.fits')
 stokes_cube = dataset[0].data
 wavelength = dataset[1].data
 
@@ -23,6 +23,9 @@ NX = stokes_cube.shape[0]
 NY = stokes_cube.shape[1]
 NS = stokes_cube.shape[2]
 NL = stokes_cube.shape[3]
+
+print ("Dimensions of the field :", NX, NY)
+print ("Total number of wavelenghts :", NL)
 
 if (NS != 4):
 	print("Wrong number of Stokes components. Check your data!")
@@ -38,14 +41,19 @@ if (NL_check != NL):
 # Here we select only wavelength range from 10828.5 to 10831.3 
 #(This can also be in a conf file?)
 l_left = np.argmin(np.abs(wavelength-10828.5))
-l_right = np.argmin(np.abs(wavelength-10831.3))
+l_right = np.argmin(np.abs(wavelength-10831.3)) + 1
+
+n_wvl = l_right - l_left
 
 print("Indices of wavelenght boundaries are: ",l_left,l_right)
 
+# TODO: What if the wavelength range is smaller than this? Will this still work? Should, right.
+
 
 # Normalization always with respect to the LOCAL continuum (meaning, in THAT pixel)
-loc_continuum = np.amax(stokes[:,:,0,l_left:l_right],axis=2)
-stokes /= loc_continuum[:,:,np.newaxis,np.newaxis]
+loc_continuum = np.amax(stokes_cube[:,:,0,l_left:l_right],axis=2)
+stokes_cube /= loc_continuum[:,:,np.newaxis,np.newaxis]
+del(loc_continuum)
 
 # EXTRA STEP, correct the data for the limb darkning:
 # These two need to be fetched from fits: 
@@ -66,11 +74,11 @@ ld_correction = 1.0
 
 # Save the data for the inversion
 # First the wavelength axis
-np.savetxt('10830_gregor.wavelength', ll[l_left:l_right+1], header='lambda')
+np.savetxt(input_filename+'.wavelength', wavelength[l_left:l_right], header='lambda')
 
 
 # Now the wavelength dependent weights
-f = open('10830_gregor.weights', 'w')
+f = open(input_filename+'.weights', 'w')
 f.write('# WeightI WeightQ WeightU WeightV\n')
 for i in range(n_wvl):
     f.write('1.0    1.0   1.0   1.0\n')
@@ -89,9 +97,7 @@ y_start = 0
 y_end = y_start + NY
 n_pixel = NX * NY
 
-n_wvl = l_right - l_left + 1
-
-stokes_3d = stokes_cube[x_start:x_end+1,y_start:y_end+1,:,l_left:l_right+1]
+stokes_3d = stokes_cube[x_start:x_end+1,y_start:y_end+1,:,l_left:l_right] * ld_correction
 stokes_3d = stokes_3d.reshape(n_pixel,4,n_wvl)
 stokes_3d = stokes_3d.transpose(0,2,1)
 
@@ -112,7 +118,8 @@ boundary_3d = np.zeros((n_pixel,n_wvl,4), dtype=np.float64)
 boundary_3d[:,:,0] = 1.0
 
 # Write down the file:
-f = h5py.File(output, 'w')
+output_filename = input_filename+'.h5'
+f = h5py.File(output_filename, 'w')
 db_stokes = f.create_dataset('stokes', stokes_3d.shape, dtype=np.float64)
 db_sigma = f.create_dataset('sigma', sigma_3d.shape, dtype=np.float64)
 db_los = f.create_dataset('LOS', los_3d.shape, dtype=np.float64)
@@ -124,3 +131,36 @@ db_boundary[:] = boundary_3d
 f.close()
 
 # Change the configuration file:
+
+# ========================================================================================
+
+config_f_o = open("conf_multi.ini", 'r')
+original_config = config_f_o.readlines()
+
+file_keys = ['Output file', 'Wavelength file', 'Wavelength weight file', 'Observations file']
+file_keys_pos = np.zeros(len(file_keys))
+file_keys_pos = file_keys_pos.astype('int')
+
+keys_pre        = ['', '	', '	', '	']
+keys_extensions = ['_l2.h5', '.wavelength', '.weights', '.h5']
+
+#print (file_keys[0])
+#print (file_keys[1])
+#print (file_keys[2])
+#print (file_keys[3])
+
+# Find where each one of these is:
+
+for i in range(len(file_keys)):
+    for j in range(len(original_config)):
+        if original_config[j].find(file_keys[i]) >=0:
+            file_keys_pos[i]=j
+            print (file_keys_pos[i])
+
+            original_config[j] = keys_pre[i] + file_keys[i] + ' = ' + input_filename + keys_extensions[i]+ '\n'
+
+config_f_output = open('conf_'+input_filename+'.ini','w')
+config_f_output.writelines(original_config)
+config_f_output.close()	
+
+# ========================================================================================
