@@ -7,7 +7,7 @@ import sys
 # Here we will presume it looks the same as the GREGOR data
 
 input_filename = sys.argv[1] # this is without the .fits extension, can it be done better?
-
+input_filename = input_filename[:-5]
 
 
 #Here we read the data from the cube:
@@ -144,18 +144,12 @@ file_keys_pos = file_keys_pos.astype('int')
 keys_pre        = ['', '	', '	', '	']
 keys_extensions = ['_l2.h5', '.wavelength', '.weights', '.h5']
 
-#print (file_keys[0])
-#print (file_keys[1])
-#print (file_keys[2])
-#print (file_keys[3])
-
 # Find where each one of these is:
 
 for i in range(len(file_keys)):
     for j in range(len(original_config)):
         if original_config[j].find(file_keys[i]) >=0:
             file_keys_pos[i]=j
-            print (file_keys_pos[i])
 
             original_config[j] = keys_pre[i] + file_keys[i] + ' = ' + input_filename + keys_extensions[i]+ '\n'
 
