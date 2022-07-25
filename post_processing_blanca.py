@@ -6,12 +6,18 @@ import sys
 # Read the data from the hazel output and pack it up as a fits file with all the necessary information
 # Also supply the information in the header
 
-input_file = sys.argv[1]
-output_file = sys.argv[2]
-NX = int(sys.argv[3]) # you need to know these two in advance
-NY = int(sys.argv[4])
+input_file = sys.argv[1] # name of the ORIGINAL fits file
+input_file = input_file[:-5]
 
-results = h5py.File(input_file,'r')
+
+# A bit brute force but will work:
+original_fits = fits.open(input_file+".fits")
+NX = int(original_fits[0].header['NAXIS4'])
+NY = int(original_fits[0].header['NAXIS3'])
+print("NX = ", NX, "NY = ", NY)
+
+
+results = h5py.File(input_file+"_l2.h5",'r')
 
 # The output contains relevant parameters an their uncertainties + chi2 + a specific 'flag' entry that can specify additionnal info:
 # Optical depth + error (unitless)
@@ -54,7 +60,9 @@ atmos = atmos.reshape(18,NX,NY)
 output = fits.PrimaryHDU(atmos)
 header = output.header
 
-#Hardcoded proxy values to be written to the heaer (read this from the config file?)
+#Hardcoded proxy values to be written to the header (read this from the config file?)
+# Now we now how to do this
+# TODO on Ivan to do for the next week's meeting:
 topology = 'ch1'
 height = 5.0
 noise = 1E-3
@@ -111,7 +119,7 @@ print (header)
 # Notes about the header
 # X,Y and lambda coordinates that describe what subset of the original fits file has been taken into account for inversion
 
-output.writeto(output_file,overwrite='True')
+output.writeto(input_file+"_l2.fits",overwrite='True')
 
 
 
